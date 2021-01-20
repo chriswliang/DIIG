@@ -8,5 +8,30 @@ library(tidyverse)
 library(infer)
 ```
 
+```{r read-data}
+hotel_bookings <- read.csv("~/R/DIIG/hotel_bookings.csv")
+```
 
+```{r total_nights}
+hotel_bookings <- hotel_bookings %>%
+  mutate(total_nights = stays_in_week_nights + stays_in_weekend_nights)
+```
+
+```{r month-distribution}
+hotel_bookings %>%
+  mutate(arrival_date_month = factor(arrival_date_month, 
+                                     levels = c("January", "February", "March", "April", "May",
+                                                "June", "July", "August", "September",
+                                                "October", "November", "December"))) %>%
+  group_by(hotel, arrival_date_month) %>%
+  ggplot(aes(x = arrival_date_month)) +
+  geom_bar() +
+  facet_wrap(~ hotel, 
+             nrow = 2, 
+             scales = "free_y") +
+  labs(title = "Distribution of Arrivals at Hotel by Month of the Year",
+       subtitle = "Faceted by City vs. Resort Hotel",
+       x = "Arrival Date Month",
+       y = "Number of Arrivals")
+```
 
