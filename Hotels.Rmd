@@ -1,0 +1,12 @@
+---
+title: "Hotels"
+author: "Christina Liang"
+output: pdf_document
+---
+```{r packages, message = FALSE}
+library(tidyverse)
+library(infer)
+```
+
+
+
