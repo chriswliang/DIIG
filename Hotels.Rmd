@@ -6,6 +6,8 @@ output: pdf_document
 ```{r packages, message = FALSE}
 library(tidyverse)
 library(infer)
+library(leaps)
+library(MASS)
 ```
 
 ```{r read-data}
@@ -157,24 +159,98 @@ Anyways, using the individual guests instead of the overall number of guests is 
 Now, I'll start building the bigger model manually:
 
 
+```{r m1}
+m_1 <- lm(adr ~ arrival_date_month + adults,
+          data = resort_bookings)
 
-
-
-```{r model}
-logit_mod1 <- glm(is_canceled ~ arrival_date_month + total_nights,
-                  data = resort_bookings, family = "binomial", maxit = 100)
+glance(m_1)
+tidy(m_1)
 ```
+
+Slight increase --> 0.575 in adj. r. squared with adults, without kids
+
+```{r}
+m_2 <- lm(adr ~ arrival_date_month + adults + children,
+          data = resort_bookings)
+
+glance(m_2)
+tidy(m_2)
+```
+
+Significant increase in r-squared --> 0.629
+
+```{r}
+m_3 <- lm(adr ~ arrival_date_month + adults + children + babies,
+          data = resort_bookings)
+
+glance(m_3)
+tidy(m_3)
+```
+
+
+Very insignificant increase in r-squared with babies
+
+```{r}
+m_4 <- lm(adr ~ arrival_date_month + adults + children + babies + meal,
+          data = resort_bookings)
+
+glance(m_4)
+tidy(m_4)
+```
+
+Tiny increase in r-squared with meal
+
+```{r}
+m_5 <- lm(adr ~ arrival_date_month + adults + children + babies + meal + total_nights,
+          data = resort_bookings)
+
+glance(m_5)
+tidy(m_5)
+```
+
+Basically no increase with total_nights (no additional night discount)
+
+```{r}
+m_6 <- lm(adr ~ arrival_date_month + adults + children + babies + meal + total_nights +
+            total_of_special_requests,
+          data = resort_bookings)
+
+glance(m_6)
+tidy(m_6)
+```
+
+Slightest increase in r-squared with special requests
+
+```{r}
+m_7 <- lm(adr ~ arrival_date_month + adults + children + babies + meal + total_nights +
+            total_of_special_requests + required_car_parking_spaces,
+          data = resort_bookings)
+
+glance(m_7)
+tidy(m_7)
+```
+
+Also a slight tiny increase in r-squared.
+
+
+I'm going to do backwards elimination with multivariate regression to see which predictor most influences average daily rate 
+
+```{r stepwise}
+step.model <- stepAIC(m_7, direction = "both", 
+                      trace = FALSE)
+summary(step.model)
+```
+
+The model kicked out babies.
+
+
+
 
 ```{r}
 logit_mod2 <- glm(is_canceled ~ adults + children + babies + meal,
                   data = resort_bookings, family = "binomial", maxit = 100)
 
 logit_mod2
-```
-
-```{r}
-logit_mod3 <- glm(is_canceled ~ adr + required_car_parking_spaces + total_of_special_requests,
-                  data = resort_bookings, family = "binomial", maxit = 100)
 ```
 
 
