@@ -40,9 +40,24 @@ hotel_bookings <- hotel_bookings %>%
   mutate(total_guests = adults + children + babies)
 ```
 
+```{r season}
+hotel_bookings <- hotel_bookings %>%
+  mutate(arrival_season = case_when(arrival_date_month == "December" ~ "Winter", 
+                                     arrival_date_month == "January" ~ "Winter",
+                                     arrival_date_month == "February" ~ "Winter",
+                                     arrival_date_month == "September" ~ "Fall", 
+                                     arrival_date_month == "October" ~ "Fall", 
+                                     arrival_date_month == "November" ~ "Fall",
+                                     arrival_date_month == "March" ~ "Spring",
+                                     arrival_date_month == "April" ~ "Spring", 
+                                     arrival_date_month == "May" ~ "Spring",
+                                     arrival_date_month == "June" ~ "Summer", 
+                                     arrival_date_month =="July" ~ "Summer", 
+                                     arrival_date_month =="August" ~ "Summer"))
+```
 
 
-First, I visualized the distribution of visits to the hotels based on month of the year, to find that there was an increase in volume of arrivals in the warmer months.
+Next, I visualized the distribution of visits to the hotels based on month of the year, to find that there was an increase in volume of arrivals in the warmer months.
 
 ```{r month-distribution}
 hotel_bookings %>%
@@ -58,6 +73,21 @@ hotel_bookings %>%
        y = "Number of Arrivals")
 ```
 
+
+```{r season-distribution}
+hotel_bookings %>%
+  group_by(hotel, arrival_season) %>%
+  ggplot(aes(x = arrival_season)) +
+  geom_bar(fill = "darkblue") +
+  facet_wrap(~ hotel, 
+             nrow = 2, 
+             scales = "free_y") +
+  labs(title = "Distribution of Arrivals at Hotel by Season of the Year",
+       subtitle = "Faceted by City vs. Resort Hotel",
+       x = "Arrival Date Season",
+       y = "Number of Arrivals")
+```
+
 ```{r meanadr, warning = FALSE}
 hotel_bookings %>%
   group_by(hotel, arrival_date_month) %>%
@@ -69,11 +99,6 @@ hotel_bookings %>%
        x = "Hotel Location",
        y = "Mean Average Daily Rate ($)")
 ```
-```{r meanadr-month}
-hotel_bookings %>%
-  group_by(hotel, arrival_date_month) %>%
-  summarise(meanadr = mean(adr))
-```
 
 
 For this data challenge, I'll mainly be focusing on Resort Hotels, so I filtered the "City Hotels" out of my dataset.
@@ -82,12 +107,15 @@ resort_bookings <- hotel_bookings %>%
   filter(hotel == "Resort Hotel")
 ```
 
-Question: what predicts cancellations?
-
-
 
 How does having kids influence rates?
 
+
+```{r meanadr-month}
+resort_bookings %>%
+  group_by(arrival_season) %>%
+  summarise(meanadr = mean(adr))
+```
 
 
 ```{r model}
