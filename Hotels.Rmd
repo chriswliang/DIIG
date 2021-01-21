@@ -95,11 +95,11 @@ hotel_bookings %>%
   ggplot(aes(x = arrival_date_month, y = meanadr)) +
   geom_col(fill = "darkblue") +
   facet_wrap(~ hotel, nrow = 2, scales = "free_y") +
-  labs(title = "Mean Average Daily Rate by Hotel",
-       x = "Hotel Location",
+  labs(title = "Mean Average Daily Rate by Hotel by Month",
+       x = "Arrival Month",
        y = "Mean Average Daily Rate ($)")
 ```
-
+It seems that city hotels are pretty expensive year-round, whereas resort hotels are significantly cheaper in the colder months than in the warmer months.
 
 For this data challenge, I'll mainly be focusing on Resort Hotels, so I filtered the "City Hotels" out of my dataset.
 ```{r resort-only}
@@ -108,14 +108,56 @@ resort_bookings <- hotel_bookings %>%
 ```
 
 
-How does having kids influence rates?
+Question: What influences the average daily rate at resort hotels?
 
+I'll be looking at the number of adults, children, and babies, the arrival month, the total number of nights stayed, the meal plan, the number of special requests, and the number of purchased car parkings. I'll build the model manually.
 
 ```{r meanadr-month}
 resort_bookings %>%
   group_by(arrival_season) %>%
   summarise(meanadr = mean(adr))
 ```
+
+First, I need to figure out whether it is better to use month or season:
+
+```{r rate-month}
+m_rate_month <- lm(adr ~ arrival_date_month,
+                   data = resort_bookings)
+
+glance(m_rate_month)
+```
+
+```{r rate-season}
+m_rate_season <- lm(adr ~ arrival_season,
+                    data = resort_bookings)
+
+glance(m_rate_season)
+```
+
+
+Okay apparently it's month but both of them have pretty low adjusted r-squared values and that makes me sad.
+
+I'll also need to figure out whether I want to use total number of guests or the individual number of adults, children, and babies.
+
+```{r rate-total-guests}
+m_rate_totalguests <- lm(adr ~ total_guests, data = resort_bookings)
+
+glance(m_rate_totalguests)
+```
+
+```{r rate-ind-guests}
+m_rate_indguests <- lm(adr ~ adults + children + babies,
+                       data = resort_bookings)
+
+glance(m_rate_indguests)
+```
+
+Anyways, using the individual guests instead of the overall number of guests is better due to a slightly higher adjusted r-squared value.
+
+Now, I'll start building the bigger model manually:
+
+
+
 
 
 ```{r model}
