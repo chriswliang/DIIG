@@ -12,13 +12,15 @@ library(infer)
 hotel_bookings <- read.csv("~/R/DIIG/hotel_bookings.csv")
 ```
 
+First, I made some new variables and did some data cleaning:
+
+New variable for total amount of nights stayed:
 ```{r total_nights}
 hotel_bookings <- hotel_bookings %>%
   mutate(total_nights = stays_in_week_nights + stays_in_weekend_nights)
 ```
 
-First, I visualized the distribution of visits to the hotels based on month of the year, to find that there was an increase in volume of arrivals in the warmer months.
-
+Changing the month of arrival into chronologically-ordered levels:
 ```{r months}
 hotel_bookings <- hotel_bookings %>%
   mutate(arrival_date_month = factor(arrival_date_month, 
@@ -27,6 +29,20 @@ hotel_bookings <- hotel_bookings %>%
                                                 "October", "November", "December")))
 ```
 
+I also changed the is_canceled variable from numeric to categorical, as 0 and 1 represent a booking being cancelled or not.
+```{r is-canceled}
+hotel_bookings$is_canceled <- as.factor(hotel_bookings$is_canceled)
+```
+
+I created a variable for the total number of guests during the duration of the stay:
+```{r total-guests}
+hotel_bookings <- hotel_bookings %>%
+  mutate(total_guests = adults + children + babies)
+```
+
+
+
+First, I visualized the distribution of visits to the hotels based on month of the year, to find that there was an increase in volume of arrivals in the warmer months.
 
 ```{r month-distribution}
 hotel_bookings %>%
@@ -41,11 +57,6 @@ hotel_bookings %>%
        x = "Arrival Date Month",
        y = "Number of Arrivals")
 ```
-I also changed the is_canceled variable from numeric to categorical, as 0 and 1 represent a booking being cancelled or not.
-```{r is-canceled}
-hotel_bookings$is_canceled <- as.factor(hotel_bookings$is_canceled)
-```
-
 
 ```{r meanadr, warning = FALSE}
 hotel_bookings %>%
@@ -58,37 +69,42 @@ hotel_bookings %>%
        x = "Hotel Location",
        y = "Mean Average Daily Rate ($)")
 ```
-```{r}
+```{r meanadr-month}
 hotel_bookings %>%
   group_by(hotel, arrival_date_month) %>%
   summarise(meanadr = mean(adr))
 ```
 
 
-For this data challenge, I'll mainly be focusing on Resort Hotels.
+For this data challenge, I'll mainly be focusing on Resort Hotels, so I filtered the "City Hotels" out of my dataset.
 ```{r resort-only}
 resort_bookings <- hotel_bookings %>%
   filter(hotel == "Resort Hotel")
 ```
 
+Question: what predicts cancellations?
+
+
+
+How does having kids influence rates?
+
+
+
 ```{r model}
-#logit_mod1 <- glm(is_canceled ~ lead_time + arrival_date_year + arrival_date_month +
-              #     arrival_date_week_number + arrival_date_day_of_month + stays_in_weekend_nights +
-               #    stays_in_week_nights,
-               #   data = resort_bookings, family = "binomial", maxit = 100)
+logit_mod1 <- glm(is_canceled ~ arrival_date_month + total_nights,
+                  data = resort_bookings, family = "binomial", maxit = 100)
 ```
 
 ```{r}
-#logit_mod2 <- glm(is_canceled ~ adults + children + babies + meal + country +
-             #      market_segment + is_repeated_guest + previous_cancellations + previous_bookings_not_canceled +
-              #     booking_changes + deposit_type,
-               #   data = resort_bookings, family = "binomial", maxit = 100)
+logit_mod2 <- glm(is_canceled ~ adults + children + babies + meal,
+                  data = resort_bookings, family = "binomial", maxit = 100)
+
+logit_mod2
 ```
 
 ```{r}
-#logit_mod3 <- glm(is_canceled ~ days_in_waiting_list + adr + required_car_parking_spaces +
-               #    total_of_special_requests + reservation_status + reservation_status_date,
-               #   data = resort_bookings, family = "binomial", maxit = 100)
+logit_mod3 <- glm(is_canceled ~ adr + required_car_parking_spaces + total_of_special_requests,
+                  data = resort_bookings, family = "binomial", maxit = 100)
 ```
 
 
