@@ -212,6 +212,19 @@ resort_bookings %>%
   summarise(meanadr = mean(adr))
 ```
 
+```{r adr-season-kids}
+resort_bookings %>%
+  group_by(kids) %>%
+  summarise(meanadr = mean(adr)) %>%
+  ggplot(mapping = aes(x = kids,
+                       y = meanadr)) + 
+  geom_col(fill = "darkblue") +
+  labs(title = "Differences in Mean ADR for Guests with/without Kids",
+       x = "Guests with/without Kids",
+       y = "Mean ADR")
+```
+
+
 First, I need to figure out whether it is better to use month or season:
 
 
