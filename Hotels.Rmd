@@ -59,6 +59,15 @@ hotel_bookings <- hotel_bookings %>%
                                      arrival_date_month =="August" ~ "Summer"))
 ```
 
+I also created another variable called "kids", which would classify whether or not the guests brought kids. Kids meant either bringing children or bringing babies--only when there were neither children nor babies would the guests be considered having "no kids".
+
+```{r kids}
+hotel_bookings <- hotel_bookings %>%
+  mutate(kids = case_when(children > 0 ~ "Have kids",
+                          children == 0 & babies == 0 ~ "No kids",
+                          babies > 0 ~ "Have kids"))
+```
+
 
 Next, I visualized the distribution of visits to the hotels based on month of the year, to find that there was an increase in volume of arrivals in the warmer months.
 
@@ -106,7 +115,32 @@ hotel_bookings %>%
 
 It seems that city hotels are pretty expensive year-round, whereas resort hotels are significantly cheaper in the colder months than in the warmer months.
 
-For this data challenge, I'll mainly be focusing on Resort Hotels, so I filtered the "City Hotels" out of my dataset. Resort Hotels piqued my interested 
+I also want to see how the average daily rate at the hotels have changed over time.
+
+```{r change-year-resort}
+hotel_bookings %>%
+  filter(hotel == "Resort Hotel") %>%
+  group_by(arrival_date_year) %>%
+  summarize(meanadryear = mean(adr)) %>%
+  ggplot(mapping = aes(x = arrival_date_year, y = meanadryear)) +
+  geom_line(size = 1.2) +
+  labs(x = "Year of Arrival at Resort Hotel", y = "Average Daily Rate for that Year ($)",
+       title = "Average Daily Rates at Resort Hotels by Year")
+```
+```{r change-year-city}
+hotel_bookings %>%
+  filter(hotel == "City Hotel") %>%
+  group_by(arrival_date_year) %>%
+  summarize(meanadryear = mean(adr)) %>%
+  ggplot(mapping = aes(x = arrival_date_year, y = meanadryear)) +
+  geom_line(size = 1.2) +
+  labs(x = "Year of Arrival at City Hotel", y = "Average Daily Rate for that Year ($)",
+       title = "Average Daily Rates at City Hotels by Year")
+```
+
+
+For this data challenge, I'll mainly be focusing on Resort Hotels, so I filtered the "City Hotels" out of my dataset. Resort Hotels piqued my interests because of the vacation- and family-oriented aspect. Additionally, the huge disparity in amount of arrivals and cost of a resort hotel between cold weather months and warm weather months I think is worth investigating. Practically, that disparity makes sense because families tend to take resort-type vacations in the summer.
+
 ```{r resort-only}
 resort_bookings <- hotel_bookings %>%
   filter(hotel == "Resort Hotel")
