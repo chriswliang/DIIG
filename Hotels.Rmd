@@ -38,6 +38,12 @@ I also changed the is_canceled variable from numeric to categorical, as 0 and 1 
 hotel_bookings$is_canceled <- as.factor(hotel_bookings$is_canceled)
 ```
 
+Then, I did the same for is_repeated_guest, which should also be a categorical variable rather than a numerical variable.
+
+```{r is-repeated-guest}
+hotel_bookings$is_repeated_guest <- as.factor(hotel_bookings$is_repeated_guest)
+```
+
 I created a variable for the total number of guests during the duration of the stay:
 ```{r total-guests}
 hotel_bookings <- hotel_bookings %>%
@@ -68,6 +74,14 @@ hotel_bookings <- hotel_bookings %>%
   mutate(kids = case_when(children > 0 & babies == 0 ~ "Have kids",
                           children == 0 & babies == 0 ~ "No kids",
                           babies > 0 & children == 0 ~ "Have kids"))
+```
+
+Lastly, I created a variable that accounted for the percentage of previous bookings cancelled as a proportion of total previous bookings (previous bookings cancelled/(previous bookings canceled + previous bookings not cancelled))
+
+```{r proportion}
+hotel_bookings <- hotel_bookings %>%
+  mutate(prop_cancelled = previous_cancellations/sum(previous_cancellations 
+                                                     + previous_bookings_not_canceled) * 100)
 ```
 
 
@@ -161,7 +175,7 @@ hotel_bookings %>%
   geom_bar(position = "fill") + 
   labs(x = "Arrival Season at City Hotel",
        y = "Proportion of Guests with or without Kids", fill = "Guests with and without Kids",
-       title = "The Proportion of Guests with Kids at City Hotels During Different Seasons")
+       title = "The Proportion of Guests with Kids at City Hotels in Different Seasons")
 ```
 ```{r resort-hotel-kids}
 hotel_bookings %>%
@@ -172,7 +186,7 @@ hotel_bookings %>%
   geom_bar(position = "fill") + 
   labs(x = "Arrival Season at Resort Hotel",
        y = "Proportion of Guests with or without Kids", fill = "Guests with and without Kids",
-       title = "The Proportion of Guests with Kids at Resort Hotels During Different Seasons")
+       title = "The Proportion of Guests with Kids at Resort Hotels in Different Seasons")
 ```
 
 
@@ -190,6 +204,8 @@ resort_bookings <- hotel_bookings %>%
 
 I'll be looking at the number of adults, children, and babies, the arrival month, the total number of nights stayed, the meal plan, the number of special requests, and the number of purchased car parkings, because these variables are the most practical ones of the included variables when considering the price of a hotel during the booking stage. I'll build the model manually at first, and then use a stepwise backward and forward elimination to eliminate unnecessary predictors from the model. Afterwards, the model should follow the laws of Occam's Razor (the simplest model that explains the most).
 
+There seems to be a sizeable disparity between mean average daily rates by season for the resort hotels, alluding to the practical relevance of season/month on daily rates at the resort hotel.
+
 ```{r meanadr-month}
 resort_bookings %>%
   group_by(arrival_season) %>%
@@ -197,6 +213,7 @@ resort_bookings %>%
 ```
 
 First, I need to figure out whether it is better to use month or season:
+
 
 ```{r rate-month}
 m_rate_month <- lm(adr ~ arrival_date_month,
@@ -233,6 +250,8 @@ glance(m_rate_indguests)
 Using the individual guests instead of the overall number of guests is better due to a slightly higher adjusted r-squared value.
 
 Now, I'll start building the bigger model manually:
+
+(January is the reference level for the arrival_date_month variable)
 
 ```{r m1}
 m_1 <- lm(adr ~ arrival_date_month + adults,
@@ -316,15 +335,69 @@ step.model <- stepAIC(m_7, direction = "both",
 summary(step.model)
 ```
 
-The model kicked out babies, but kept all other predictors. The model has an adjusted r-squared of 0.6723, which is a pretty good r-squared value, signifying that approximately 67% of the variability in average daily rate at resort hotels can be explained by the model with the above predictors.
+The model kicked out babies, but kept all other predictors. The model has an adjusted r-squared of 0.6723, which is a pretty good r-squared value, signifying that approximately 67% of the variability in average daily rate at resort hotels can be explained by the model with the above predictors. Holding all other factors constant, the model predicts that the average daily rate of a resort hotel will be $126.87 more expensive in August than in January. 
 
 
+## Cancellations at Resort Hotels
 
-```{r}
-logit_mod2 <- glm(is_canceled ~ adults + children + babies + meal,
+For resort hotels, I'd also like to investigate the likelihood of a booking being cancelled, specially based on the guest's previous behavior and caprice rather circumstantial or financial factors (i.e. price of hotel, how many kids the guests are bringing). So, I'll be looking at whether or not the guest is a repeated guest, if they've previously cancelled bookings, how many booking changes he or she made, and how many days he or she had to stay in the waiting list, which are variabled pertaining to my emphasis on behavior/loyalty/emotion. To build the desired model, I'll be following the laws of Occam's Razor and trying to find the best model with the lowest AIC and BIC values.
+
+I started building my logistic regression model manually with the binary outcome variable "is_canceled":
+
+```{r log1}
+log1 <- glm(is_canceled ~ is_repeated_guest,
+                  data = resort_bookings, family = "binomial")
+
+log1
+AIC(log1)
+BIC(log1)
+```
+
+```{r log2}
+log2 <- glm(is_canceled ~ is_repeated_guest + previous_bookings_not_canceled,
+                  data = resort_bookings, family = "binomial")
+
+log2
+AIC(log2)
+BIC(log2)
+```
+
+The AIC and BIC values decreased when previous_bookings_not_canceled was added to the logistic regression model, so I can proceed to add more variables.
+
+```{r log3}
+log3 <- glm(is_canceled ~ is_repeated_guest + previous_bookings_not_canceled +
+              booking_changes,
+                  data = resort_bookings, family = "binomial")
+
+log3
+AIC(log3)
+BIC(log3)
+```
+
+The AIC and BIC values decreased when booking_changes was added to the logistic regression model, so I can proceed to add more variables.
+
+```{r log4}
+log4 <- glm(is_canceled ~ is_repeated_guest + previous_bookings_not_canceled +
+              booking_changes + days_in_waiting_list,
+                  data = resort_bookings, family = "binomial")
+
+tidy(log4)
+AIC(log4)
+BIC(log4)
+```
+
+The AIC and BIC values decreased very slightly when days_in_waiting_list was added to the logistic regression model, so I'll keep it in the model and call this model the final model.
+
+I've also created a model with the variable previous_cancellations included; however, this variable yields perfect separation, which is not desired. Practically, I believe that with previous_bookings_not_canceled in the model, this model that includes previous_cancellations is not necessary. Regardless, previous_cancellations reduces the AIC and BIC values significantly. This model is an alternative model to the previous model.
+
+```{r logistic-model}
+logit_mod <- glm(is_canceled ~ is_repeated_guest + previous_bookings_not_canceled + previous_cancellations +
+                   booking_changes + days_in_waiting_list,
                   data = resort_bookings, family = "binomial", maxit = 100)
 
-logit_mod2
+tidy(logit_mod)
+AIC(logit_mod)
+BIC(logit_mod)
 ```
 
 
