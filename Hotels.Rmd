@@ -14,6 +14,8 @@ library(MASS)
 hotel_bookings <- read.csv("~/R/DIIG/hotel_bookings.csv")
 ```
 
+## Data cleaning 
+
 First, I made some new variables and did some data cleaning:
 
 New variable for total amount of nights stayed:
@@ -63,11 +65,13 @@ I also created another variable called "kids", which would classify whether or n
 
 ```{r kids}
 hotel_bookings <- hotel_bookings %>%
-  mutate(kids = case_when(children > 0 ~ "Have kids",
+  mutate(kids = case_when(children > 0 & babies == 0 ~ "Have kids",
                           children == 0 & babies == 0 ~ "No kids",
-                          babies > 0 ~ "Have kids"))
+                          babies > 0 & children == 0 ~ "Have kids"))
 ```
 
+
+## Visualizations 
 
 Next, I visualized the distribution of visits to the hotels based on month of the year, to find that there was an increase in volume of arrivals in the warmer months.
 
@@ -137,7 +141,42 @@ hotel_bookings %>%
   labs(x = "Year of Arrival at City Hotel", y = "Average Daily Rate for that Year ($)",
        title = "Average Daily Rates at City Hotels by Year")
 ```
+```{r kids-barchart}
+hotel_bookings %>%
+  group_by(hotel) %>%
+  ggplot(mapping = aes(x = hotel,
+                       fill = kids)) + 
+  geom_bar(position = "fill") + 
+  labs(x = "Type of Hotel",
+       y = "Proportion of Guests with or without Kids", fill = "Guests with and without Kids",
+       title = "The Proportion of Guests with Kids at Hotels")
+```
 
+```{r city-hotel-kids}
+hotel_bookings %>%
+  filter(hotel == "City Hotel") %>%
+  group_by(arrival_season) %>%
+  ggplot(mapping = aes(x = arrival_season,
+                       fill = kids)) + 
+  geom_bar(position = "fill") + 
+  labs(x = "Arrival Season at City Hotel",
+       y = "Proportion of Guests with or without Kids", fill = "Guests with and without Kids",
+       title = "The Proportion of Guests with Kids at City Hotels During Different Seasons")
+```
+```{r resort-hotel-kids}
+hotel_bookings %>%
+  filter(hotel == "Resort Hotel") %>%
+  group_by(arrival_season) %>%
+  ggplot(mapping = aes(x = arrival_season,
+                       fill = kids)) + 
+  geom_bar(position = "fill") + 
+  labs(x = "Arrival Season at Resort Hotel",
+       y = "Proportion of Guests with or without Kids", fill = "Guests with and without Kids",
+       title = "The Proportion of Guests with Kids at Resort Hotels During Different Seasons")
+```
+
+
+## Resort Hotels
 
 For this data challenge, I'll mainly be focusing on Resort Hotels, so I filtered the "City Hotels" out of my dataset. Resort Hotels piqued my interests because of the vacation- and family-oriented aspect. Additionally, the huge disparity in amount of arrivals and cost of a resort hotel between cold weather months and warm weather months I think is worth investigating. Practically, that disparity makes sense because families tend to take resort-type vacations in the summer.
 
@@ -147,7 +186,7 @@ resort_bookings <- hotel_bookings %>%
 ```
 
 
-Question: What influences the average daily rate at resort hotels?
+## Question: What influences the average daily rate at resort hotels?
 
 I'll be looking at the number of adults, children, and babies, the arrival month, the total number of nights stayed, the meal plan, the number of special requests, and the number of purchased car parkings, because these variables are the most practical ones of the included variables when considering the price of a hotel during the booking stage. I'll build the model manually at first, and then use a stepwise backward and forward elimination to eliminate unnecessary predictors from the model. Afterwards, the model should follow the laws of Occam's Razor (the simplest model that explains the most).
 
