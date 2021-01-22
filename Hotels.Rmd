@@ -42,6 +42,7 @@ hotel_bookings <- hotel_bookings %>%
   mutate(total_guests = adults + children + babies)
 ```
 
+I also created a new variable for the season during the arrival at the hotel, assigning the months to season.
 ```{r season}
 hotel_bookings <- hotel_bookings %>%
   mutate(arrival_season = case_when(arrival_date_month == "December" ~ "Winter", 
@@ -75,7 +76,7 @@ hotel_bookings %>%
        y = "Number of Arrivals")
 ```
 
-
+Likewise, I visualized the distribution of arrivals at the hotels during the different seasons.
 ```{r season-distribution}
 hotel_bookings %>%
   group_by(hotel, arrival_season) %>%
@@ -90,6 +91,7 @@ hotel_bookings %>%
        y = "Number of Arrivals")
 ```
 
+Looking at average daily rate next, I visualized the distribution of average daily rate depending on the month of arrival at the hotels.
 ```{r meanadr, warning = FALSE}
 hotel_bookings %>%
   group_by(hotel, arrival_date_month) %>%
@@ -101,9 +103,10 @@ hotel_bookings %>%
        x = "Arrival Month",
        y = "Mean Average Daily Rate ($)")
 ```
+
 It seems that city hotels are pretty expensive year-round, whereas resort hotels are significantly cheaper in the colder months than in the warmer months.
 
-For this data challenge, I'll mainly be focusing on Resort Hotels, so I filtered the "City Hotels" out of my dataset.
+For this data challenge, I'll mainly be focusing on Resort Hotels, so I filtered the "City Hotels" out of my dataset. Resort Hotels piqued my interested 
 ```{r resort-only}
 resort_bookings <- hotel_bookings %>%
   filter(hotel == "Resort Hotel")
@@ -112,7 +115,7 @@ resort_bookings <- hotel_bookings %>%
 
 Question: What influences the average daily rate at resort hotels?
 
-I'll be looking at the number of adults, children, and babies, the arrival month, the total number of nights stayed, the meal plan, the number of special requests, and the number of purchased car parkings. I'll build the model manually.
+I'll be looking at the number of adults, children, and babies, the arrival month, the total number of nights stayed, the meal plan, the number of special requests, and the number of purchased car parkings, because these variables are the most practical ones of the included variables when considering the price of a hotel during the booking stage. I'll build the model manually at first, and then use a stepwise backward and forward elimination to eliminate unnecessary predictors from the model. Afterwards, the model should follow the laws of Occam's Razor (the simplest model that explains the most).
 
 ```{r meanadr-month}
 resort_bookings %>%
@@ -137,7 +140,7 @@ glance(m_rate_season)
 ```
 
 
-Okay apparently it's month but both of them have pretty low adjusted r-squared values and that makes me sad.
+According to the r-squared values, arrival month explains more of the differences in average daily rate. Unfortunately, that means there will be twelve levels of that variable, rather than four levels. 
 
 I'll also need to figure out whether I want to use total number of guests or the individual number of adults, children, and babies.
 
@@ -154,10 +157,9 @@ m_rate_indguests <- lm(adr ~ adults + children + babies,
 glance(m_rate_indguests)
 ```
 
-Anyways, using the individual guests instead of the overall number of guests is better due to a slightly higher adjusted r-squared value.
+Using the individual guests instead of the overall number of guests is better due to a slightly higher adjusted r-squared value.
 
 Now, I'll start building the bigger model manually:
-
 
 ```{r m1}
 m_1 <- lm(adr ~ arrival_date_month + adults,
@@ -169,7 +171,7 @@ tidy(m_1)
 
 Slight increase --> 0.575 in adj. r. squared with adults, without kids
 
-```{r}
+```{r m2}
 m_2 <- lm(adr ~ arrival_date_month + adults + children,
           data = resort_bookings)
 
@@ -177,9 +179,9 @@ glance(m_2)
 tidy(m_2)
 ```
 
-Significant increase in r-squared --> 0.629
+Significant increase in r-squared --> 0.629.
 
-```{r}
+```{r m3}
 m_3 <- lm(adr ~ arrival_date_month + adults + children + babies,
           data = resort_bookings)
 
@@ -187,10 +189,9 @@ glance(m_3)
 tidy(m_3)
 ```
 
+Very insignificant increase in r-squared with babies.
 
-Very insignificant increase in r-squared with babies
-
-```{r}
+```{r m4}
 m_4 <- lm(adr ~ arrival_date_month + adults + children + babies + meal,
           data = resort_bookings)
 
@@ -198,9 +199,9 @@ glance(m_4)
 tidy(m_4)
 ```
 
-Tiny increase in r-squared with meal
+Tiny increase in r-squared with meal.
 
-```{r}
+```{r m5}
 m_5 <- lm(adr ~ arrival_date_month + adults + children + babies + meal + total_nights,
           data = resort_bookings)
 
@@ -208,9 +209,9 @@ glance(m_5)
 tidy(m_5)
 ```
 
-Basically no increase with total_nights (no additional night discount)
+Very small in r-squared with total_nights. The coefficient for total_nights is negative, indicating that holding all other factors constant, for each additional night of the stay, we expect a slightly over $1 discount in the average daily rate. This decrease in average daily rate makes sense, because usually a longer stay warrants an additional stay discount.
 
-```{r}
+```{r m6}
 m_6 <- lm(adr ~ arrival_date_month + adults + children + babies + meal + total_nights +
             total_of_special_requests,
           data = resort_bookings)
@@ -219,9 +220,9 @@ glance(m_6)
 tidy(m_6)
 ```
 
-Slightest increase in r-squared with special requests
+Slightest increase in r-squared with number of special requests.
 
-```{r}
+```{r m7}
 m_7 <- lm(adr ~ arrival_date_month + adults + children + babies + meal + total_nights +
             total_of_special_requests + required_car_parking_spaces,
           data = resort_bookings)
@@ -230,10 +231,11 @@ glance(m_7)
 tidy(m_7)
 ```
 
-Also a slight tiny increase in r-squared.
+Also a slight tiny increase in r-squared when car parking spaces are considered.
 
+Because no coefficient in the model changes drastically when another is added, I can assume that there is not too much multicollinearity between the predictors and move forward without too much care for interaction variables.
 
-I'm going to do backwards elimination with multivariate regression to see which predictor most influences average daily rate 
+I'm going to do backwards and forwards (both directions) elimination with multivariate regression to see which predictors most influences average daily rate. This stepwise elimination will remove excess variables from the model.
 
 ```{r stepwise}
 step.model <- stepAIC(m_7, direction = "both", 
@@ -241,8 +243,7 @@ step.model <- stepAIC(m_7, direction = "both",
 summary(step.model)
 ```
 
-The model kicked out babies.
-
+The model kicked out babies, but kept all other predictors. The model has an adjusted r-squared of 0.6723, which is a pretty good r-squared value, signifying that approximately 67% of the variability in average daily rate at resort hotels can be explained by the model with the above predictors.
 
 
 
