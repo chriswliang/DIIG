@@ -223,7 +223,7 @@ resort_bookings %>%
        x = "Guests with/without Kids",
        y = "Mean ADR")
 ```
-
+It's significantly more expensive to bring kids than not to bring kids to a resort hotel. NAs are negligible. 
 
 First, I need to figure out whether it is better to use month or season:
 
