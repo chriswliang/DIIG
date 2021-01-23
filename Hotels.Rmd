@@ -155,6 +155,9 @@ hotel_bookings %>%
   labs(x = "Year of Arrival at City Hotel", y = "Average Daily Rate for that Year ($)",
        title = "Average Daily Rates at City Hotels by Year")
 ```
+
+Additionally, the nature of staying at a hotel is vastly different whether a family brings children or not, so I'd like to see the percentages of guests who with kids.
+
 ```{r kids-barchart}
 hotel_bookings %>%
   group_by(hotel) %>%
@@ -189,6 +192,7 @@ hotel_bookings %>%
        title = "The Proportion of Guests with Kids at Resort Hotels in Different Seasons")
 ```
 
+It appears that at resort hotels especially, a higher proportion of guests bring kids, particularly in the summer, which implies the family-oriented/vacation-oriented nature of resort hotels.
 
 ## Resort Hotels
 
